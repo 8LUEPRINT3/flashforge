@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>FlashForge — Study Smarter</title>
+<title>FlashForge - Study Smarter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
@@ -550,7 +550,7 @@ nav{
         <span id="deck-count" style="font-size:.72rem;color:var(--dim);letter-spacing:.06em">0 decks</span>
       </div>
       <div class="decks-grid" id="decks-grid">
-        <div class="deck-empty">No decks yet — create your first one above.</div>
+        <div class="deck-empty">No decks yet - create your first one above.</div>
       </div>
     </div>
   </div>
@@ -579,7 +579,7 @@ nav{
       </div>
       <div class="card-list" id="card-list"></div>
       <div id="no-cards" style="text-align:center;padding:48px 20px;color:var(--dim);font-family:'Lora',serif;font-style:italic;display:none">
-        No cards yet — add your first one.
+        No cards yet - add your first one.
       </div>
     </div>
   </div>
@@ -656,7 +656,7 @@ nav{
         </div>
         <div id="bulk-preview" style="display:none;margin-bottom:16px">
           <div style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-bottom:10px">
-            Preview — <span id="bulk-count">0</span> cards detected
+            Preview - <span id="bulk-count">0</span> cards detected
           </div>
           <div id="bulk-preview-list" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto"></div>
         </div>
@@ -722,7 +722,7 @@ nav{
         AI Study Assistant
       </h2>
       <p style="color:var(--dim);font-family:'Lora',serif;font-style:italic;font-size:.88rem">
-        Upload any material — the AI generates summaries, notes, flashcards, quizzes, and answers your questions.
+        Upload any material - the AI generates summaries, notes, flashcards, quizzes, and answers your questions.
       </p>
     </div>
 
@@ -787,7 +787,10 @@ nav{
       <div id="ai-tab-cards" class="ai-tab-panel" style="display:none;padding:24px 0">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
           <span style="font-size:.72rem;color:var(--dim);letter-spacing:.06em" id="ai-cards-count">0 cards generated</span>
-          <button class="btn btn-gold btn-sm" onclick="openImportModal()">↓ Import to Deck</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="generateMoreCards()">+ Generate More</button>
+            <button class="btn btn-gold btn-sm" onclick="openImportModal()">↓ Import All to Deck</button>
+          </div>
         </div>
         <div id="ai-cards-list" style="display:flex;flex-direction:column;gap:10px"></div>
       </div>
@@ -922,7 +925,7 @@ function renderDecks(){
   document.getElementById('deck-count').textContent = ids.length + ' deck' + (ids.length===1?'':'s')
 
   if(!ids.length){
-    grid.innerHTML = '<div class="deck-empty">No decks yet — create your first one above.</div>'
+    grid.innerHTML = '<div class="deck-empty">No decks yet - create your first one above.</div>'
     return
   }
   grid.innerHTML = ids.map(id => {
@@ -1126,7 +1129,7 @@ async function handleOCR(input){
     await worker.terminate()
 
     ocrText = text.trim()
-    if(!ocrText){ status.textContent = '⚠ No text detected — try a clearer image'; return }
+    if(!ocrText){ status.textContent = '⚠ No text detected - try a clearer image'; return }
 
     status.textContent = '✓ Text recognised'
     resultBox.textContent = ocrText
@@ -1166,7 +1169,7 @@ function startStudy(){
   const cards = Object.values(deck.cards||{})
   if(!cards.length){ toast('Add some cards first'); return }
 
-  // Shuffle — prioritise unknown cards first
+  // Shuffle - prioritise unknown cards first
   const unknown = cards.filter(c=>!c.known)
   const known   = cards.filter(c=>c.known)
   studyQueue = [...shuffle(unknown), ...shuffle(known)]
@@ -1407,21 +1410,21 @@ async function generateAll(){
       const jsonStr = cardsRaw.match(/\[[\s\S]*\]/)[0]
       aiGeneratedCards = JSON.parse(jsonStr)
       renderAICards()
-    } catch(e){ document.getElementById('ai-cards-list').innerHTML = '<div style="color:var(--dim);font-style:italic">Could not parse flashcards — try again.</div>' }
+    } catch(e){ document.getElementById('ai-cards-list').innerHTML = '<div style="color:var(--dim);font-style:italic">Could not parse flashcards - try again.</div>' }
 
     // Quiz
     try{
       const jsonStr = quizRaw.match(/\[[\s\S]*\]/)[0]
       aiQuizData = JSON.parse(jsonStr)
       renderQuiz()
-    } catch(e){ document.getElementById('ai-quiz-container').innerHTML = '<div style="color:var(--dim);font-style:italic">Could not parse quiz — try again.</div>' }
+    } catch(e){ document.getElementById('ai-quiz-container').innerHTML = '<div style="color:var(--dim);font-style:italic">Could not parse quiz - try again.</div>' }
 
     // Tutor init
     tutorHistory = [{ role:'system', content:`You are a helpful study tutor. The student is studying the following material. Answer their questions clearly and concisely.\n\nMATERIAL:\n${snippet}` }]
     document.getElementById('tutor-messages').innerHTML = `
       <div class="tutor-msg ai">
         <div class="msg-who">AI Tutor</div>
-        I've read your material. Ask me anything about it — I'll explain concepts, quiz you, or clarify anything confusing.
+        I've read your material. Ask me anything about it - I'll explain concepts, quiz you, or clarify anything confusing.
       </div>`
 
     document.getElementById('ai-results').style.display = ''
@@ -1438,11 +1441,62 @@ async function generateAll(){
 function renderAICards(){
   const list = document.getElementById('ai-cards-list')
   list.innerHTML = aiGeneratedCards.map((c,i) => `
-    <div class="ai-gen-card">
-      <div class="ai-gen-card-front"><span style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-right:8px">Q</span>${esc(c.front)}</div>
-      <div class="ai-gen-card-back"><span style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-right:8px">A</span>${esc(c.back)}</div>
+    <div class="ai-gen-card" id="ai-card-${i}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1">
+          <div class="ai-gen-card-front"><span style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-right:8px">Q</span>${esc(c.front)}</div>
+          <div class="ai-gen-card-back"><span style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-right:8px">A</span>${esc(c.back)}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="flex-shrink:0;white-space:nowrap" onclick="addSingleAICard(${i},this)">+ Add</button>
+      </div>
     </div>`).join('')
 }
+
+async function generateMoreCards(){
+  const text = getSourceText()
+  if(!text){ toast('No source material loaded'); return }
+  const btn = event.target; btn.disabled=true; btn.textContent='Generating...'
+  try{
+    const raw = await groqChat([{role:'user',content:`Generate 10 MORE different flashcards from this material. Focus on concepts not already covered. Output ONLY valid JSON array:\n[{"front":"question or term","back":"answer or definition"},...]\n\nMaterial:\n${text.slice(0,5000)}`}])
+    const jsonStr = raw.match(/\[[\s\S]*\]/)[0]
+    const newCards = JSON.parse(jsonStr)
+    aiGeneratedCards = [...aiGeneratedCards, ...newCards]
+    renderAICards()
+    document.getElementById('ai-cards-count').textContent = aiGeneratedCards.length + ' cards generated'
+    toast(`${newCards.length} more cards added ✓`)
+  } catch(e){ toast('Error: '+e.message) }
+  btn.disabled=false; btn.textContent='+ Generate More'
+}
+
+function addSingleAICard(i, btn){
+  const card = aiGeneratedCards[i]
+  if(!card) return
+  const ids = Object.keys(db.decks)
+  if(!ids.length){ toast('Create a deck first on the home screen'); return }
+
+  // If only one deck, add directly
+  if(ids.length === 1){
+    const deckId = ids[0]
+    const id = uid()
+    db.decks[deckId].cards[id] = {id, front:card.front, back:card.back, known:false, created:Date.now()}
+    save()
+    btn.textContent = '✓ Added'
+    btn.style.color = '#7ab870'
+    btn.style.borderColor = 'rgba(74,103,65,0.5)'
+    btn.disabled = true
+    toast(`Added to "${db.decks[deckId].name}" ✓`)
+    return
+  }
+
+  // Multiple decks - use import modal with single card
+  aiImportSingleIndex = i
+  const sel = document.getElementById('import-deck-select')
+  sel.innerHTML = ids.map(id=>`<option value="${id}">${esc(db.decks[id].name)}</option>`).join('')
+  document.getElementById('modal-import').classList.add('open')
+  document.getElementById('modal-import').dataset.single = i
+}
+
+let aiImportSingleIndex = -1
 
 // ── QUIZ ─────────────────────────────────────────
 function renderQuiz(){
@@ -1512,11 +1566,54 @@ async function sendTutor(){
   try{
     const reply = await groqChat(tutorHistory, 'llama-3.1-8b-instant')
     tutorHistory.push({role:'assistant',content:reply})
-    document.getElementById('tutor-typing').innerHTML = `<div class="msg-who">AI Tutor</div>${reply.replace(/\n/g,'<br>')}`
+    const msgId = 'tmsg-'+uid()
+    const lastQ = tutorHistory[tutorHistory.length-2]?.content || ''
+    document.getElementById('tutor-typing').id = msgId
+    document.getElementById(msgId).innerHTML = `
+      <div class="msg-who">AI Tutor</div>
+      <div>${reply.replace(/\n/g,'<br>')}</div>
+      <div style="margin-top:8px">
+        <button class="btn btn-ghost btn-sm" style="font-size:.65rem;padding:4px 10px"
+          onclick="makeTutorCard('${msgId}',${JSON.stringify(lastQ).replace(/'/g,"\\'")},'${msgId}')">
+          ✦ Make Flashcard
+        </button>
+      </div>`
   } catch(e){
     document.getElementById('tutor-typing').innerHTML = `<div class="msg-who">AI Tutor</div><span style="color:#e07060">Error: ${e.message}</span>`
   }
   msgs.scrollTop = msgs.scrollHeight
+}
+
+// ── TUTOR → FLASHCARD ─────────────────────────────
+async function makeTutorCard(msgId, question, btnMsgId){
+  const btn = document.querySelector(`#${msgId} button`)
+  if(btn){ btn.disabled=true; btn.textContent='Generating card...' }
+
+  // Get the AI response text
+  const msgEl = document.getElementById(msgId)
+  const answerText = msgEl ? msgEl.querySelector('div:nth-child(2)')?.innerText || '' : ''
+
+  try{
+    // Use AI to distill into clean Q/A
+    const raw = await groqChat([{role:'user',content:`Turn this study exchange into a single clean flashcard. Output ONLY valid JSON: {"front":"concise question or term","back":"concise answer or definition"}\n\nQuestion asked: ${question}\nAnswer given: ${answerText.slice(0,800)}`}], 'llama-3.1-8b-instant')
+    const jsonStr = raw.match(/\{[\s\S]*\}/)[0]
+    const card = JSON.parse(jsonStr)
+
+    // Add to generated cards pool
+    aiGeneratedCards.push(card)
+    renderAICards()
+    document.getElementById('ai-cards-count').textContent = aiGeneratedCards.length + ' cards generated'
+
+    // Switch to cards tab
+    const cardsTabBtn = document.querySelector('#screen-ai .tab-btn:nth-child(3)')
+    if(cardsTabBtn) aiTab('cards', cardsTabBtn)
+
+    if(btn){ btn.textContent='✓ Card Created'; btn.style.color='#7ab870' }
+    toast('Flashcard created — check the Cards tab ✓')
+  } catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='✦ Make Flashcard' }
+    toast('Error creating card: '+e.message)
+  }
 }
 
 // ── IMPORT TO DECK ────────────────────────────────
@@ -1534,14 +1631,30 @@ function closeImportModal(){ document.getElementById('modal-import').classList.r
 function confirmImport(){
   const deckId = document.getElementById('import-deck-select').value
   if(!deckId || !db.decks[deckId]){ toast('Select a valid deck'); return }
-  let count = 0
-  aiGeneratedCards.forEach(c=>{
+  const singleIdx = parseInt(document.getElementById('modal-import').dataset.single ?? '-1')
+
+  if(singleIdx >= 0){
+    // Single card import
+    const c = aiGeneratedCards[singleIdx]
     const id = uid()
     db.decks[deckId].cards[id] = {id, front:c.front, back:c.back, known:false, created:Date.now()}
-    count++
-  })
-  save(); closeImportModal()
-  toast(`${count} cards imported to "${db.decks[deckId].name}" ✓`)
+    save(); closeImportModal()
+    // Mark button as added
+    const btn = document.querySelector(`#ai-card-${singleIdx} button`)
+    if(btn){ btn.textContent='✓ Added'; btn.disabled=true; btn.style.color='#7ab870'; btn.style.borderColor='rgba(74,103,65,0.5)' }
+    toast(`Card added to "${db.decks[deckId].name}" ✓`)
+    document.getElementById('modal-import').dataset.single = '-1'
+  } else {
+    // Bulk import all
+    let count = 0
+    aiGeneratedCards.forEach(c=>{
+      const id = uid()
+      db.decks[deckId].cards[id] = {id, front:c.front, back:c.back, known:false, created:Date.now()}
+      count++
+    })
+    save(); closeImportModal()
+    toast(`${count} cards imported to "${db.decks[deckId].name}" ✓`)
+  }
 }
 
 document.getElementById('modal-import').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeImportModal() })
