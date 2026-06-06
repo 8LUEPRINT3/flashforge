@@ -748,7 +748,7 @@ nav{
       <div id="key-row-gemini" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);min-width:60px">Gemini Key</span>
         <input type="password" id="ai-gemini-key" class="form-input" placeholder="AIza..."
-          style="flex:1;min-width:180px;padding:8px 12px;font-size:.8rem"/>
+          style="flex:1;min-width:180px;padding:8px 12px;font-size:.8rem" placeholder="Paste Gemini key..."/>
         <button class="btn btn-gold btn-sm" onclick="saveAIKey()">Save</button>
         <span style="font-size:.68rem;color:var(--dim)">Free at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--brass)">aistudio.google.com</a></span>
       </div>
@@ -1325,7 +1325,7 @@ function saveAIKey(){
     localStorage.setItem('ai_groq_key', k)
   } else {
     const k = document.getElementById('ai-gemini-key').value.trim()
-    if(!k.startsWith('AIza')){ toast('Gemini key should start with AIza'); return }
+    if(!k){ toast('Paste your Gemini API key first'); return }
     localStorage.setItem('ai_gemini_key', k)
   }
   document.getElementById('ai-key-status').textContent = '✅ Saved'
