@@ -727,13 +727,31 @@ nav{
     </div>
 
     <!-- API Key -->
-    <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:6px;padding:16px 18px;margin-bottom:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);flex-shrink:0">Groq API Key</span>
-      <input type="password" id="ai-groq-key" class="form-input" placeholder="gsk_..."
-        style="flex:1;min-width:200px;padding:8px 12px;font-size:.8rem"/>
-      <button class="btn btn-gold btn-sm" onclick="saveAIKey()">Save</button>
-      <span id="ai-key-status" style="font-size:.72rem;color:var(--dim)"></span>
-      <span style="font-size:.68rem;color:var(--dim)">Free key at <a href="https://console.groq.com" target="_blank" style="color:var(--brass)">console.groq.com</a></span>
+    <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:6px;padding:16px 18px;margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);flex-shrink:0">AI Provider</span>
+        <div style="display:flex;gap:6px">
+          <button id="prov-btn-groq" class="btn btn-gold btn-sm" onclick="setProvider('groq')">Groq</button>
+          <button id="prov-btn-gemini" class="btn btn-ghost btn-sm" onclick="setProvider('gemini')">Gemini</button>
+        </div>
+        <span id="ai-key-status" style="font-size:.72rem;color:var(--dim);margin-left:auto"></span>
+      </div>
+      <!-- Groq row -->
+      <div id="key-row-groq" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);min-width:60px">Groq Key</span>
+        <input type="password" id="ai-groq-key" class="form-input" placeholder="gsk_..."
+          style="flex:1;min-width:180px;padding:8px 12px;font-size:.8rem"/>
+        <button class="btn btn-gold btn-sm" onclick="saveAIKey()">Save</button>
+        <span style="font-size:.68rem;color:var(--dim)">Free at <a href="https://console.groq.com" target="_blank" style="color:var(--brass)">console.groq.com</a></span>
+      </div>
+      <!-- Gemini row -->
+      <div id="key-row-gemini" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);min-width:60px">Gemini Key</span>
+        <input type="password" id="ai-gemini-key" class="form-input" placeholder="AIza..."
+          style="flex:1;min-width:180px;padding:8px 12px;font-size:.8rem"/>
+        <button class="btn btn-gold btn-sm" onclick="saveAIKey()">Save</button>
+        <span style="font-size:.68rem;color:var(--dim)">Free at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--brass)">aistudio.google.com</a></span>
+      </div>
     </div>
 
     <!-- Upload / Paste -->
@@ -1279,33 +1297,81 @@ let aiGeneratedCards = []
 let aiQuizData     = []
 let tutorHistory   = []
 let _pdfjs         = null
+let aiProvider     = localStorage.getItem('ai_provider') || 'groq'
 
 function initAIScreen(){
-  const k = localStorage.getItem('ai_groq_key')
-  if(k){ document.getElementById('ai-groq-key').value = k; document.getElementById('ai-key-status').textContent = '✅ Key loaded' }
+  setProvider(aiProvider, true)
+  const gk = localStorage.getItem('ai_groq_key')
+  if(gk) document.getElementById('ai-groq-key').value = gk
+  const gmk = localStorage.getItem('ai_gemini_key')
+  if(gmk) document.getElementById('ai-gemini-key').value = gmk
+  if(gk||gmk) document.getElementById('ai-key-status').textContent = '✅ Key loaded'
+}
+
+function setProvider(p, silent){
+  aiProvider = p
+  localStorage.setItem('ai_provider', p)
+  document.getElementById('key-row-groq').style.display   = p==='groq'   ? 'flex' : 'none'
+  document.getElementById('key-row-gemini').style.display = p==='gemini' ? 'flex' : 'none'
+  document.getElementById('prov-btn-groq').className   = 'btn btn-sm '+(p==='groq'   ? 'btn-gold' : 'btn-ghost')
+  document.getElementById('prov-btn-gemini').className = 'btn btn-sm '+(p==='gemini' ? 'btn-gold' : 'btn-ghost')
+  if(!silent) toast('Using '+p.charAt(0).toUpperCase()+p.slice(1))
 }
 
 function saveAIKey(){
-  const k = document.getElementById('ai-groq-key').value.trim()
-  if(!k.startsWith('gsk_')){ toast('Key should start with gsk_'); return }
-  localStorage.setItem('ai_groq_key', k)
+  if(aiProvider==='groq'){
+    const k = document.getElementById('ai-groq-key').value.trim()
+    if(!k.startsWith('gsk_')){ toast('Groq key should start with gsk_'); return }
+    localStorage.setItem('ai_groq_key', k)
+  } else {
+    const k = document.getElementById('ai-gemini-key').value.trim()
+    if(!k.startsWith('AIza')){ toast('Gemini key should start with AIza'); return }
+    localStorage.setItem('ai_gemini_key', k)
+  }
   document.getElementById('ai-key-status').textContent = '✅ Saved'
-  setTimeout(() => document.getElementById('ai-key-status').textContent = '', 2000)
+  setTimeout(()=>document.getElementById('ai-key-status').textContent='', 2000)
 }
 
-function getAIKey(){ return localStorage.getItem('ai_groq_key') || '' }
+function getAIKey(){
+  return aiProvider==='gemini'
+    ? localStorage.getItem('ai_gemini_key') || ''
+    : localStorage.getItem('ai_groq_key')   || ''
+}
 
-async function groqChat(messages, model='llama-3.3-70b-versatile'){
+// Unified chat — routes to Groq or Gemini
+async function groqChat(messages, groqModel='llama-3.3-70b-versatile'){
   const key = getAIKey()
-  if(!key) throw new Error('Add your Groq API key first')
+  if(!key) throw new Error('Add your '+aiProvider+' API key first')
+  if(aiProvider === 'gemini') return geminiChat(messages, key)
+  // Groq (OpenAI-compatible)
   const r = await fetchTimeout('https://api.groq.com/openai/v1/chat/completions', 30000, {
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-    body: JSON.stringify({model, messages, temperature:0.5, max_tokens:2048})
+    body: JSON.stringify({model:groqModel, messages, temperature:0.5, max_tokens:2048})
   })
   if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status) }
   const d = await r.json()
   return d.choices[0].message.content
+}
+
+async function geminiChat(messages, key){
+  // Convert OpenAI message format → Gemini format
+  const system = messages.find(m=>m.role==='system')
+  const turns  = messages.filter(m=>m.role!=='system')
+  const contents = turns.map(m=>({
+    role: m.role==='assistant' ? 'model' : 'user',
+    parts:[{text: m.content}]
+  }))
+  const body = { contents, generationConfig:{temperature:0.5, maxOutputTokens:2048} }
+  if(system) body.systemInstruction = {parts:[{text:system.content}]}
+
+  const r = await fetchTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+    30000, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}
+  )
+  if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status) }
+  const d = await r.json()
+  return d.candidates?.[0]?.content?.parts?.[0]?.text || ''
 }
 
 function fetchTimeout(url, ms, opts){
