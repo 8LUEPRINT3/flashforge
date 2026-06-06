@@ -610,28 +610,65 @@ nav{
     </nav>
     <div style="padding:0 0 60px">
       <div class="add-header">
-        <h2>Add a Card</h2>
+        <h2>Add Cards</h2>
         <p style="color:var(--dim);font-family:'Lora',serif;font-style:italic;font-size:.88rem;margin-top:6px">
-          Type manually or use OCR to scan your handwritten notes.
+          One card, bulk paste, or scan handwritten notes with OCR.
         </p>
       </div>
 
-      <!-- Manual entry -->
-      <div class="form-group">
-        <label class="form-label">Front (Question / Term)</label>
-        <textarea class="form-textarea" id="card-front" placeholder="What is the capital of France?" rows="3"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Back (Answer / Definition)</label>
-        <textarea class="form-textarea" id="card-back" placeholder="Paris" rows="3"></textarea>
+      <!-- Mode tabs -->
+      <div class="tab-row" id="add-mode-tabs" style="margin-bottom:24px">
+        <button class="tab-btn active" onclick="addMode('single',this)">Single Card</button>
+        <button class="tab-btn" onclick="addMode('bulk',this)">Bulk Paste</button>
+        <button class="tab-btn" onclick="addMode('ocr',this)">Scan (OCR)</button>
       </div>
 
-      <!-- OCR Section -->
-      <div style="margin:28px 0 16px;padding-top:24px;border-top:1px solid rgba(245,240,232,0.08)">
-        <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:16px">
-          ✦ Scan Handwritten Text (OCR)
+      <!-- ── SINGLE CARD ── -->
+      <div id="add-panel-single">
+        <div class="form-group">
+          <label class="form-label">Front (Question / Term)</label>
+          <textarea class="form-textarea" id="card-front" placeholder="What is the capital of France?" rows="3"></textarea>
         </div>
-        <div class="tab-row">
+        <div class="form-group">
+          <label class="form-label">Back (Answer / Definition)</label>
+          <textarea class="form-textarea" id="card-back" placeholder="Paris" rows="3"></textarea>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:8px">
+          <button class="btn btn-gold" onclick="saveCard()">Save Card</button>
+          <button class="btn btn-ghost" onclick="clearCardForm()">Clear</button>
+        </div>
+      </div>
+
+      <!-- ── BULK PASTE ── -->
+      <div id="add-panel-bulk" style="display:none">
+        <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:5px;padding:14px 16px;margin-bottom:18px;font-size:.78rem;line-height:1.7;color:rgba(245,240,232,0.7)">
+          <strong style="color:var(--brass)">Format:</strong> one card per line, front and back separated by <code style="color:var(--brass);background:rgba(201,168,76,0.1);padding:1px 5px;border-radius:3px">|</code><br/>
+          <span style="color:var(--dim)">Example:</span><br/>
+          <code style="color:rgba(245,240,232,0.6)">What is mitosis? | Cell division producing 2 identical daughter cells</code><br/>
+          <code style="color:rgba(245,240,232,0.6)">Capital of Japan | Tokyo</code><br/>
+          <code style="color:rgba(245,240,232,0.6)">Boyle's Law | P₁V₁ = P₂V₂ at constant temperature</code>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Paste your cards below</label>
+          <textarea class="form-textarea" id="bulk-input" rows="12"
+            placeholder="Term 1 | Definition 1&#10;Term 2 | Definition 2&#10;Question 3 | Answer 3&#10;..."
+            oninput="previewBulk()"></textarea>
+        </div>
+        <div id="bulk-preview" style="display:none;margin-bottom:16px">
+          <div style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-bottom:10px">
+            Preview — <span id="bulk-count">0</span> cards detected
+          </div>
+          <div id="bulk-preview-list" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto"></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:16px">
+          <button class="btn btn-gold" onclick="saveBulk()" id="bulk-save-btn" disabled>Save All Cards</button>
+          <button class="btn btn-ghost" onclick="clearBulk()">Clear</button>
+        </div>
+      </div>
+
+      <!-- ── OCR ── -->
+      <div id="add-panel-ocr" style="display:none">
+        <div class="tab-row" style="margin-bottom:16px">
           <button class="tab-btn active" onclick="setOcrTarget('front',this)">Scan → Front</button>
           <button class="tab-btn" onclick="setOcrTarget('back',this)">Scan → Back</button>
         </div>
@@ -647,12 +684,22 @@ nav{
           <button class="btn btn-gold btn-sm" onclick="applyOcr()">✓ Use This Text</button>
           <button class="btn btn-ghost btn-sm" onclick="clearOcr()">Clear</button>
         </div>
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(245,240,232,0.08)">
+          <div class="form-group">
+            <label class="form-label">Front</label>
+            <textarea class="form-textarea" id="card-front-ocr" rows="2" placeholder="Filled by OCR or type here"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Back</label>
+            <textarea class="form-textarea" id="card-back-ocr" rows="2" placeholder="Filled by OCR or type here"></textarea>
+          </div>
+          <div style="display:flex;gap:12px">
+            <button class="btn btn-gold" onclick="saveOcrCard()">Save Card</button>
+            <button class="btn btn-ghost" onclick="clearOcrCard()">Clear</button>
+          </div>
+        </div>
       </div>
 
-      <div style="display:flex;gap:12px;margin-top:28px">
-        <button class="btn btn-gold" onclick="saveCard()">Save Card</button>
-        <button class="btn btn-ghost" onclick="clearCardForm()">Clear</button>
-      </div>
     </div>
   </div>
 
@@ -945,22 +992,100 @@ function goAddCard(){
 }
 
 // ── ADD CARD ─────────────────────────────────────
+// ── ADD MODE SWITCH ───────────────────────────────
+function addMode(mode, btn){
+  ['single','bulk','ocr'].forEach(m=>{
+    document.getElementById('add-panel-'+m).style.display = m===mode ? '' : 'none'
+  })
+  document.querySelectorAll('#add-mode-tabs .tab-btn').forEach(b=>b.classList.remove('active'))
+  btn.classList.add('active')
+}
+
+// ── SINGLE CARD ───────────────────────────────────
 function saveCard(){
   const front = document.getElementById('card-front').value.trim()
   const back  = document.getElementById('card-back').value.trim()
   if(!front || !back){ toast('Fill in both sides first'); return }
-
   const id = uid()
   db.decks[currentDeckId].cards[id] = { id, front, back, known:false, created: Date.now() }
-  save()
-  clearCardForm()
-  toast('Card saved ✓')
+  save(); clearCardForm(); toast('Card saved ✓')
 }
 
 function clearCardForm(){
   document.getElementById('card-front').value = ''
   document.getElementById('card-back').value  = ''
-  clearOcr()
+}
+
+// ── BULK PASTE ────────────────────────────────────
+function parseBulk(){
+  const raw = document.getElementById('bulk-input').value
+  const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l.includes('|'))
+  return lines.map(l=>{
+    const idx = l.indexOf('|')
+    return { front: l.slice(0,idx).trim(), back: l.slice(idx+1).trim() }
+  }).filter(c=>c.front && c.back)
+}
+
+function previewBulk(){
+  const cards = parseBulk()
+  const preview = document.getElementById('bulk-preview')
+  const list = document.getElementById('bulk-preview-list')
+  const saveBtn = document.getElementById('bulk-save-btn')
+
+  if(!cards.length){ preview.style.display='none'; saveBtn.disabled=true; return }
+
+  document.getElementById('bulk-count').textContent = cards.length
+  list.innerHTML = cards.map(c=>`
+    <div style="display:flex;gap:10px;background:rgba(245,240,232,0.04);border:1px solid rgba(245,240,232,0.08);border-radius:4px;padding:10px 14px;font-size:.82rem">
+      <div style="flex:1;font-family:'Lora',serif;color:var(--paper)">${esc(c.front)}</div>
+      <div style="width:1px;background:rgba(245,240,232,0.1);flex-shrink:0"></div>
+      <div style="flex:1;color:var(--dim);font-style:italic">${esc(c.back)}</div>
+    </div>`).join('')
+  preview.style.display=''; saveBtn.disabled=false
+}
+
+function saveBulk(){
+  const cards = parseBulk()
+  if(!cards.length){ toast('No valid cards found'); return }
+  cards.forEach(c=>{
+    const id = uid()
+    db.decks[currentDeckId].cards[id] = { id, front:c.front, back:c.back, known:false, created:Date.now() }
+  })
+  save(); clearBulk()
+  toast(`${cards.length} cards saved ✓`)
+  renderDeck(currentDeckId)
+}
+
+function clearBulk(){
+  document.getElementById('bulk-input').value = ''
+  document.getElementById('bulk-preview').style.display = 'none'
+  document.getElementById('bulk-save-btn').disabled = true
+}
+
+// ── OCR CARD SAVE ─────────────────────────────────
+function saveOcrCard(){
+  const front = document.getElementById('card-front-ocr').value.trim()
+  const back  = document.getElementById('card-back-ocr').value.trim()
+  if(!front || !back){ toast('Fill in both sides first'); return }
+  const id = uid()
+  db.decks[currentDeckId].cards[id] = { id, front, back, known:false, created:Date.now() }
+  save(); clearOcrCard(); clearOcr(); toast('Card saved ✓')
+}
+
+function clearOcrCard(){
+  document.getElementById('card-front-ocr').value = ''
+  document.getElementById('card-back-ocr').value  = ''
+}
+
+// Override applyOcr to target the right panel
+function applyOcr(){
+  if(!ocrText) return
+  const frontField = document.getElementById('card-front-ocr') || document.getElementById('card-front')
+  const backField  = document.getElementById('card-back-ocr')  || document.getElementById('card-back')
+  const field = ocrTarget==='front' ? frontField : backField
+  field.value = (field.value ? field.value + '\n' : '') + ocrText
+  field.focus()
+  toast('Text applied to ' + ocrTarget + ' ✓')
 }
 
 // ── OCR ──────────────────────────────────────────
