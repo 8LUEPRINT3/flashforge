@@ -998,8 +998,8 @@ if(!stored) {
         const local = JSON.parse(localStorage.getItem('flashforge')||'{"decks":{}}')
         const merged = {decks:{...local.decks,...cloud.decks}}
         localStorage.setItem('flashforge',JSON.stringify(merged))
-        if(typeof db!=='undefined') Object.assign(db,merged)
-        if(typeof renderDecks==='function') renderDecks()
+        if(window.db) Object.assign(window.db, merged)
+        if(window.renderDecks) window.renderDecks()
       }
     }
 
@@ -1011,9 +1011,10 @@ if(!stored) {
         const local = JSON.parse(localStorage.getItem('flashforge')||'{"decks":{}}')
         const merged = {decks:{...local.decks,...cloud.decks}}
         localStorage.setItem('flashforge',JSON.stringify(merged))
-        if(typeof db!=='undefined') Object.assign(db,merged)
-        if(typeof renderDecks==='function') renderDecks()
-        setSyncStatus('live','Synced · live')
+        // Update global db and re-render (module can't access global directly)
+        if(window.db) Object.assign(window.db, merged)
+        if(window.renderDecks) window.renderDecks()
+        setSyncStatus('live','☁ Live')
       })
     }
 
@@ -1049,6 +1050,7 @@ if(!stored) {
 <script>
 // ── DATA ────────────────────────────────────────
 let db = JSON.parse(localStorage.getItem('flashforge') || '{"decks":{}}')
+window.db = db  // expose for Firebase module
 let currentDeckId = null
 let studyQueue    = []
 let studyIndex    = 0
@@ -1107,7 +1109,7 @@ function createDeck(){
   toast('Deck created ✓')
 }
 
-function renderDecks(){
+window.renderDecks = function renderDecks(){
   const grid = document.getElementById('decks-grid')
   const ids = Object.keys(db.decks)
   document.getElementById('deck-count').textContent = ids.length + ' deck' + (ids.length===1?'':'s')
