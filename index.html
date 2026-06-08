@@ -226,9 +226,14 @@ nav{
   width:100%;height:100%;
   position:relative;
   transform-style:preserve-3d;
+  -webkit-transform-style:preserve-3d;
   transition:transform .55s cubic-bezier(.4,0,.2,1);
+  -webkit-transition:-webkit-transform .55s cubic-bezier(.4,0,.2,1);
 }
-.flip-card.flipped{transform:rotateY(180deg)}
+.flip-card.flipped{
+  transform:rotateY(180deg);
+  -webkit-transform:rotateY(180deg);
+}
 
 .flip-face{
   position:absolute;inset:0;
@@ -237,10 +242,20 @@ nav{
   box-shadow:var(--card-shadow);
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
+  -moz-backface-visibility:hidden;
   display:flex;flex-direction:column;
   align-items:center;justify-content:center;
   padding:36px;
   overflow:hidden;
+  /* Force GPU layer — fixes Safari/Brave bleed-through */
+  -webkit-transform:translateZ(0);
+  transform:translateZ(0);
+  will-change:transform;
+}
+/* Override translateZ for back face */
+.flip-face.back{
+  -webkit-transform:rotateY(180deg) translateZ(1px);
+  transform:rotateY(180deg) translateZ(1px);
 }
 /* Ruled line texture on cards */
 .flip-face::after{
@@ -255,7 +270,6 @@ nav{
   pointer-events:none;
 }
 .flip-face.back{
-  transform:rotateY(180deg);
   background:var(--cream);
 }
 .flip-label{
