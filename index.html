@@ -1057,9 +1057,12 @@ let studyFlipped  = false
 let ocrTarget     = 'front'
 let ocrText       = ''
 
+let _saveTimer = null
 function save(){
   localStorage.setItem('flashforge', JSON.stringify(db))
-  if(window.pushCloud) window.pushCloud()
+  // Debounce cloud push — wait 800ms after last change
+  if(_saveTimer) clearTimeout(_saveTimer)
+  _saveTimer = setTimeout(()=>{ if(window.pushCloud) window.pushCloud() }, 800)
 }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6) }
 
