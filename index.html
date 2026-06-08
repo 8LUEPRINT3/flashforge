@@ -505,6 +505,21 @@ nav{
   .ai-banner{margin:0 18px 24px;flex-direction:column;text-align:center}
 }
 
+/* ── AUTH / SYNC ──────────────────────────────── */
+.auth-avatar{
+  width:28px;height:28px;border-radius:50%;
+  border:1px solid rgba(201,168,76,0.4);
+  object-fit:cover;cursor:pointer;
+}
+.sync-dot{
+  display:inline-block;width:6px;height:6px;
+  border-radius:50%;margin-right:5px;
+  background:var(--dim);
+}
+.sync-dot.live{background:#7ab870}
+.sync-dot.saving{background:var(--brass);animation:pulse .8s infinite alternate}
+@keyframes pulse{to{opacity:.3}}
+
 /* ── SCROLLBAR ────────────────────────────────── */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -528,12 +543,16 @@ nav{
     <nav>
       <div class="nav-brand">Flash<span>Forge</span></div>
       <div class="nav-right">
+        <div id="auth-btn-area" style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="showFirebaseSetup()">☁ Sync</button>
+        </div>
         <button class="btn btn-gold btn-sm" onclick="showCreateDeck()">+ New Deck</button>
       </div>
     </nav>
     <div class="hero">
       <h1>Study with<br/><em>intention.</em></h1>
       <p>Your personal flashcard forge. Create decks, write cards by hand, and let OCR do the heavy lifting.</p>
+      <div id="sync-status" style="margin-top:12px;font-size:.72rem;letter-spacing:.06em;color:var(--dim);min-height:18px"></div>
     </div>
     <!-- AI Banner -->
     <div class="ai-banner" onclick="showScreen('ai');initAIScreen()">
@@ -861,6 +880,42 @@ nav{
   </div>
 </div>
 
+<!-- Modal: Firebase Setup -->
+<div class="modal-overlay" id="modal-firebase">
+  <div class="modal" style="max-width:520px">
+    <h3>☁ Cloud Sync Setup</h3>
+    <p style="color:var(--dim);font-family:'Lora',serif;font-style:italic;font-size:.85rem;margin:8px 0 20px">
+      Sign in with Google to sync your decks across all devices — free, takes 3 minutes to set up once.
+    </p>
+
+    <div id="firebase-configured" style="display:none;margin-bottom:18px;padding:12px 16px;background:rgba(74,103,65,0.1);border:1px solid rgba(74,103,65,0.3);border-radius:5px;font-size:.82rem;color:#7ab870">
+      ✓ Firebase connected — use the Sign In button to log in with Google
+    </div>
+
+    <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:5px;padding:14px 16px;margin-bottom:18px;font-size:.78rem;line-height:1.8">
+      <strong style="color:var(--brass)">One-time setup (3 min):</strong><br/>
+      1. Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--brass)">console.firebase.google.com</a><br/>
+      2. Click <strong>Add project</strong> → name it anything → Continue through the steps<br/>
+      3. In left sidebar → <strong>Build → Firestore Database</strong> → Create (choose <em>Start in test mode</em>)<br/>
+      4. In left sidebar → <strong>Build → Authentication</strong> → Get started → Google → Enable<br/>
+      5. Click the ⚙️ gear → <strong>Project settings</strong> → scroll to <em>Your apps</em> → Add app → Web (</>) → Register<br/>
+      6. Copy the <code style="color:var(--brass)">firebaseConfig</code> object and paste it below
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Paste your firebaseConfig object</label>
+      <textarea class="form-textarea" id="firebase-config-input" rows="8"
+        placeholder='{\n  apiKey: "AIza...",\n  authDomain: "your-app.firebaseapp.com",\n  projectId: "your-app",\n  storageBucket: "your-app.appspot.com",\n  messagingSenderId: "123456",\n  appId: "1:123456:web:abc"\n}'
+        style="font-family:'DM Mono',monospace;font-size:.75rem"></textarea>
+    </div>
+    <div id="firebase-setup-err" style="color:#e07060;font-size:.78rem;margin-bottom:10px;display:none"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeFirebaseSetup()">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="saveFirebaseConfig()">Connect & Sync</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Import AI Cards -->
 <div class="modal-overlay" id="modal-import">
   <div class="modal">
@@ -880,6 +935,115 @@ nav{
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- Firebase (loaded dynamically once config is set) -->
+<script type="module">
+const stored = localStorage.getItem('ff_firebase_config')
+if(!stored) {
+  // No config yet — show setup prompt after page loads
+  window._firebaseReady = false
+} else {
+  try{
+    const cfg = JSON.parse(stored)
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js')
+    const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js')
+    const { getFirestore, doc, setDoc, getDoc, onSnapshot }
+      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
+
+    const app      = initializeApp(cfg)
+    const auth     = getAuth(app)
+    const db_fs    = getFirestore(app)
+    const provider = new GoogleAuthProvider()
+    let currentUser = null
+    let unsubSnap   = null
+    window._firebaseReady = true
+
+    onAuthStateChanged(auth, async user => {
+      currentUser = user
+      if(user){
+        updateAuthUI(user)
+        setSyncStatus('saving','Syncing...')
+        await pullCloud(db_fs, user)
+        subscribeCloud(db_fs, user, onSnapshot)
+        setSyncStatus('live','Synced · '+user.displayName.split(' ')[0])
+      } else {
+        updateAuthUI(null)
+        setSyncStatus('','')
+        if(unsubSnap){ unsubSnap(); unsubSnap=null }
+      }
+    })
+
+    window.handleAuthClick = async () => {
+      if(currentUser){ await signOut(auth) }
+      else {
+        try{ await signInWithPopup(auth, provider) }
+        catch(e){ if(e.code!=='auth/popup-closed-by-user') toast && toast('Sign-in error: '+e.message) }
+      }
+    }
+
+    window.pushCloud = async () => {
+      if(!currentUser) return
+      setSyncStatus('saving','Saving...')
+      const ref = doc(db_fs,'users',currentUser.uid,'data','decks')
+      const cur = JSON.parse(localStorage.getItem('flashforge')||'{"decks":{}}')
+      await setDoc(ref,{db:cur, updatedAt:Date.now()})
+      setSyncStatus('live','Synced ✓')
+    }
+
+    async function pullCloud(db_fs, user){
+      const ref = doc(db_fs,'users',user.uid,'data','decks')
+      const snap = await getDoc(ref)
+      if(snap.exists()){
+        const cloud = snap.data().db
+        const local = JSON.parse(localStorage.getItem('flashforge')||'{"decks":{}}')
+        const merged = {decks:{...local.decks,...cloud.decks}}
+        localStorage.setItem('flashforge',JSON.stringify(merged))
+        if(typeof db!=='undefined') Object.assign(db,merged)
+        if(typeof renderDecks==='function') renderDecks()
+      }
+    }
+
+    function subscribeCloud(db_fs, user, onSnapshot){
+      const ref = doc(db_fs,'users',user.uid,'data','decks')
+      unsubSnap = onSnapshot(ref, snap => {
+        if(!snap.exists()) return
+        const cloud = snap.data().db
+        const local = JSON.parse(localStorage.getItem('flashforge')||'{"decks":{}}')
+        const merged = {decks:{...local.decks,...cloud.decks}}
+        localStorage.setItem('flashforge',JSON.stringify(merged))
+        if(typeof db!=='undefined') Object.assign(db,merged)
+        if(typeof renderDecks==='function') renderDecks()
+        setSyncStatus('live','Synced · live')
+      })
+    }
+
+    function updateAuthUI(user){
+      const area = document.getElementById('auth-btn-area')
+      if(!area) return
+      if(user){
+        area.innerHTML = `
+          <img src="${user.photoURL||''}" class="auth-avatar" onclick="handleAuthClick()" title="Sign out"/>
+          <span style="font-size:.7rem;color:var(--dim)">${user.displayName?.split(' ')[0]||''}</span>`
+      } else {
+        area.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="handleAuthClick()">Sign In</button>`
+      }
+    }
+
+    function setSyncStatus(type,msg){
+      const el = document.getElementById('sync-status')
+      if(!el) return
+      if(!msg){el.innerHTML='';return}
+      const dot = type ? `<span class="sync-dot ${type}"></span>` : ''
+      el.innerHTML = dot + msg
+    }
+
+  } catch(e){
+    console.error('Firebase init failed:',e)
+    window._firebaseReady = false
+  }
+}
+</script>
+
 <!-- Tesseract.js -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
@@ -893,7 +1057,10 @@ let studyFlipped  = false
 let ocrTarget     = 'front'
 let ocrText       = ''
 
-function save(){ localStorage.setItem('flashforge', JSON.stringify(db)) }
+function save(){
+  localStorage.setItem('flashforge', JSON.stringify(db))
+  if(window.pushCloud) window.pushCloud()
+}
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6) }
 
 // ── NAVIGATION ──────────────────────────────────
@@ -1290,6 +1457,66 @@ function markCard(known){
   studyIndex++
   renderStudyCard()
 }
+
+// ── FIREBASE SETUP MODAL ─────────────────────────
+function showFirebaseSetup(){
+  const modal = document.getElementById('modal-firebase')
+  const existing = localStorage.getItem('ff_firebase_config')
+  if(existing){
+    document.getElementById('firebase-configured').style.display = 'block'
+    document.getElementById('firebase-config-input').value = existing
+  }
+  // If already configured, swap ☁ Sync button for Sign In/Out
+  if(window._firebaseReady){
+    modal.querySelector('h3').textContent = '☁ Cloud Sync'
+    // Replace entire modal body with simple sign in/out
+    if(document.getElementById('auth-btn-area').querySelector('img')){
+      // logged in
+    }
+  }
+  modal.classList.add('open')
+}
+
+function closeFirebaseSetup(){
+  document.getElementById('modal-firebase').classList.remove('open')
+}
+
+function saveFirebaseConfig(){
+  const raw = document.getElementById('firebase-config-input').value.trim()
+  const err = document.getElementById('firebase-setup-err')
+  err.style.display = 'none'
+
+  // Parse — handle both JS object literal and JSON
+  let cfg
+  try{
+    // Try JSON first
+    cfg = JSON.parse(raw)
+  } catch(e){
+    try{
+      // Try evaluating as JS object literal
+      cfg = Function('"use strict";return ('+raw+')')()
+    } catch(e2){
+      err.textContent = 'Could not parse config — make sure you copied the full firebaseConfig object'
+      err.style.display = 'block'
+      return
+    }
+  }
+
+  if(!cfg.apiKey || !cfg.projectId){
+    err.textContent = 'Config is missing apiKey or projectId — check you copied the full object'
+    err.style.display = 'block'
+    return
+  }
+
+  localStorage.setItem('ff_firebase_config', JSON.stringify(cfg))
+  closeFirebaseSetup()
+  toast('Firebase configured! Reloading to connect...')
+  setTimeout(() => location.reload(), 1200)
+}
+
+document.getElementById('modal-firebase').addEventListener('click', e=>{
+  if(e.target===e.currentTarget) closeFirebaseSetup()
+})
 
 // ── AI STUDY ──────────────────────────────────────
 let aiSourceText   = ''
