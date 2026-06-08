@@ -552,7 +552,10 @@ nav{
     <div class="hero">
       <h1>Study with<br/><em>intention.</em></h1>
       <p>Your personal flashcard forge. Create decks, write cards by hand, and let OCR do the heavy lifting.</p>
-      <div id="sync-status" style="margin-top:12px;font-size:.72rem;letter-spacing:.06em;color:var(--dim);min-height:18px"></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+        <div id="sync-status" style="font-size:.72rem;letter-spacing:.06em;color:var(--dim)"></div>
+        <button id="sync-refresh-btn" onclick="forcePull()" style="display:none;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brass);background:none;border:none;cursor:pointer;padding:0">↻ Refresh</button>
+      </div>
     </div>
     <!-- AI Banner -->
     <div class="ai-banner" onclick="showScreen('ai');initAIScreen()">
@@ -963,15 +966,31 @@ if(!stored) {
       if(user){
         updateAuthUI(user)
         setSyncStatus('saving','Syncing...')
-        await pullCloud(db_fs, user)
-        subscribeCloud(db_fs, user, onSnapshot)
-        setSyncStatus('live','Synced · '+user.displayName.split(' ')[0])
+        try{
+          await pullCloud(db_fs, user)
+          subscribeCloud(db_fs, user, onSnapshot)
+          setSyncStatus('live','☁ Synced')
+          document.getElementById('sync-refresh-btn').style.display='inline'
+        } catch(e){
+          setSyncStatus('','⚠ Sync error — tap Refresh')
+          document.getElementById('sync-refresh-btn').style.display='inline'
+        }
       } else {
         updateAuthUI(null)
         setSyncStatus('','')
+        document.getElementById('sync-refresh-btn').style.display='none'
         if(unsubSnap){ unsubSnap(); unsubSnap=null }
       }
     })
+
+    window.forcePull = async () => {
+      if(!currentUser) return
+      setSyncStatus('saving','Refreshing...')
+      try{
+        await pullCloud(db_fs, currentUser)
+        setSyncStatus('live','☁ Synced')
+      } catch(e){ setSyncStatus('','⚠ '+e.message) }
+    }
 
     window.handleAuthClick = async () => {
       if(currentUser){ await signOut(auth) }
