@@ -60,6 +60,7 @@ nav{
   backdrop-filter:blur(12px);
   position:sticky;top:0;z-index:100;
   background:rgba(15,14,13,0.85);
+  -webkit-overflow-scrolling:touch;
 }
 .nav-brand{
   font-family:'Playfair Display',serif;
@@ -530,11 +531,85 @@ nav{
 
 /* ── RESPONSIVE ───────────────────────────────── */
 @media(max-width:600px){
-  nav{padding:14px 18px}
-  .decks-section,.cards-section{padding:24px 18px}
-  #screen-deck .deck-header{padding:24px 18px 18px}
-  .flip-scene{height:260px}
-  .study-area{padding:20px 16px;gap:20px}
+  /* Nav */
+  nav{padding:12px 16px;gap:8px}
+  .nav-brand{font-size:1rem}
+  .nav-right{gap:6px}
+  .btn-sm{padding:6px 10px;font-size:.68rem}
+  #auth-btn-area span{display:none} /* hide name on mobile, keep avatar */
+
+  /* Hero */
+  .hero{padding:24px 18px 20px}
+  .hero h1{font-size:2rem}
+
+  /* Sync status */
+  #sync-status{font-size:.65rem}
+
+  /* AI Banner */
+  .ai-banner{margin:0 16px 20px;padding:16px;flex-direction:row;gap:12px}
+  .ai-banner-text h3{font-size:.9rem}
+  .ai-banner-text p{font-size:.72rem}
+  .ai-banner-icon{font-size:1.6rem}
+
+  /* Decks grid — single column */
+  .decks-section,.cards-section{padding:20px 16px}
+  .decks-grid{grid-template-columns:1fr!important}
+  .deck-card{padding:18px}
+
+  /* Deck screen */
+  #screen-deck .deck-header{padding:20px 16px 16px}
+  .cards-grid{grid-template-columns:1fr!important}
+  .card-item{padding:14px 16px}
+  .card-actions{opacity:1!important} /* always show on mobile */
+
+  /* Add cards screen */
+  #screen-add{padding:0 16px}
+  .add-header{padding:20px 0 16px}
+  .add-header h2{font-size:1.4rem}
+  #add-mode-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px}
+  #add-mode-tabs .tab-btn{white-space:nowrap;flex-shrink:0}
+  .form-textarea{font-size:16px!important} /* prevent iOS zoom on focus */
+  .form-input{font-size:16px!important}
+
+  /* Bulk paste preview */
+  #bulk-preview-list > div{flex-direction:column;gap:6px}
+  #bulk-preview-list > div > div:nth-child(2){display:none} /* hide divider */
+
+  /* Study */
+  .study-area{padding:16px;gap:16px}
+  .flip-scene{height:220px;width:100%}
+  .study-btns{flex-direction:row;justify-content:center}
+  .study-btns .btn{flex:1;max-width:140px}
+
+  /* Modals */
+  .modal{margin:16px;padding:22px 18px;max-width:calc(100vw - 32px)!important;width:auto!important}
+  .modal h3{font-size:1rem}
+  .modal-actions{flex-direction:column;gap:8px}
+  .modal-actions .btn{width:100%;justify-content:center}
+
+  /* AI Study screen */
+  #screen-ai > div{padding:0 16px 60px}
+  #screen-ai > div > div:first-child{padding:24px 0 20px}
+  #screen-ai .tab-row{overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px;padding-bottom:2px}
+  #screen-ai .tab-btn{white-space:nowrap;flex-shrink:0;font-size:.68rem;padding:7px 10px}
+  #ai-results > div[style*="grid"]{grid-template-columns:1fr!important}
+  .ai-content-box{font-size:.84rem;padding:16px}
+  #tutor-messages{height:240px}
+
+  /* Quiz options */
+  .quiz-option{padding:10px 12px;font-size:.82rem}
+
+  /* Tutor chat input row */
+  #ai-tab-tutor > div:last-child{flex-direction:column}
+  #ai-tab-tutor > div:last-child .btn{width:100%}
+
+  /* Firebase setup modal textarea */
+  #firebase-config-input{font-size:12px!important}
+
+  /* General spacing */
+  h2{font-size:1.3rem}
+  .tab-row{gap:4px}
+  .tab-btn{padding:7px 12px;font-size:.72rem}
 }
 </style>
 </head>
