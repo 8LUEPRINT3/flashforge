@@ -590,6 +590,8 @@ nav{
   #bulk-preview-list > div > div:nth-child(2){display:none} /* hide divider */
 
   /* Study */
+  #tts-bar{padding:8px 16px;gap:8px}
+  #tts-bar select{max-width:120px;font-size:.62rem}
   .study-area{padding:16px;gap:16px}
   .flip-scene{height:220px;width:100%}
   .study-btns{flex-direction:row;justify-content:center}
@@ -708,6 +710,27 @@ nav{
     </nav>
     <div class="study-progress-bar">
       <div class="study-progress-fill" id="study-progress" style="width:0%"></div>
+    </div>
+    <!-- TTS Controls bar -->
+    <div id="tts-bar" style="display:flex;align-items:center;gap:10px;padding:10px 24px;border-bottom:1px solid rgba(245,240,232,0.06);flex-wrap:wrap;background:rgba(15,14,13,0.6)">
+      <button id="tts-speak-btn" onclick="ttsSpeak()" style="background:none;border:1px solid rgba(245,240,232,0.15);color:var(--paper);border-radius:4px;padding:7px 14px;font-size:.75rem;letter-spacing:.06em;cursor:pointer;font-family:'DM Mono',monospace;transition:all .2s" title="Read current side aloud">
+        🔊 Listen
+      </button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--dim);cursor:pointer">
+        <input type="checkbox" id="tts-auto" onchange="saveTTSPrefs()" style="accent-color:var(--brass)"/>
+        Auto-read
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--dim);cursor:pointer">
+        <input type="checkbox" id="tts-read-both" onchange="saveTTSPrefs()" style="accent-color:var(--brass)"/>
+        Read Q+A
+      </label>
+      <select id="tts-voice-select" onchange="saveTTSPrefs()" style="background:rgba(245,240,232,0.05);border:1px solid rgba(245,240,232,0.1);color:var(--paper);font-family:'DM Mono',monospace;font-size:.68rem;padding:5px 8px;border-radius:3px;cursor:pointer;max-width:150px"></select>
+      <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+        <span style="font-size:.65rem;color:var(--dim)">Speed</span>
+        <input type="range" id="tts-rate" min="0.5" max="2" step="0.1" value="1" onchange="saveTTSPrefs()" style="width:70px;accent-color:var(--brass)"/>
+        <span id="tts-rate-label" style="font-size:.65rem;color:var(--dim);min-width:22px">1×</span>
+      </div>
+      <button onclick="ttsStop()" style="background:none;border:none;color:var(--dim);font-size:.75rem;cursor:pointer;padding:4px 8px" title="Stop">■</button>
     </div>
     <div class="study-area" id="study-area">
       <!-- filled by JS -->
@@ -1182,7 +1205,7 @@ function showScreen(id){
 
 function goHome(){ showScreen('home'); renderDecks() }
 function backToDeck(){ showScreen('deck'); renderDeck(currentDeckId) }
-function endStudy(){ showScreen('deck'); renderDeck(currentDeckId) }
+function endStudy(){ ttsStop(); showScreen('deck'); renderDeck(currentDeckId) }
 
 // ── TOAST ────────────────────────────────────────
 function toast(msg){
@@ -1460,6 +1483,7 @@ function startStudyDirect(id){
 }
 
 function startStudy(){
+  initTTS()
   const deck = db.decks[currentDeckId]
   const cards = Object.values(deck.cards||{})
   if(!cards.length){ toast('Add some cards first'); return }
@@ -1544,6 +1568,9 @@ function renderStudyCard(){
       <button class="btn btn-know"  onclick="markCard(true)">✓ Got It</button>
     </div>
     <div style="font-size:.68rem;color:var(--dim);letter-spacing:.08em">← Swipe or use buttons after flipping</div>`
+
+  // Auto-read front when new card appears
+  setTimeout(ttsAutoRead, 300)
 }
 
 function flipCard(){
@@ -1552,6 +1579,8 @@ function flipCard(){
   if(studyFlipped){
     fc.classList.add('flipped')
     document.getElementById('study-btns').style.display = 'flex'
+    // Auto-read answer when flipped
+    setTimeout(ttsAutoRead, 400)
   } else {
     fc.classList.remove('flipped')
     document.getElementById('study-btns').style.display = 'none'
@@ -1636,6 +1665,93 @@ function saveFirebaseConfig(){
 document.getElementById('modal-firebase').addEventListener('click', e=>{
   if(e.target===e.currentTarget) closeFirebaseSetup()
 })
+
+// ── TEXT TO SPEECH ────────────────────────────────
+let ttsVoices = []
+let ttsReady  = false
+
+function initTTS(){
+  if(!window.speechSynthesis) return
+  function loadVoices(){
+    ttsVoices = speechSynthesis.getVoices()
+    const sel = document.getElementById('tts-voice-select')
+    if(!sel || !ttsVoices.length) return
+    sel.innerHTML = ttsVoices.map((v,i)=>
+      `<option value="${i}">${v.name} (${v.lang})</option>`
+    ).join('')
+    // Restore saved voice
+    const prefs = getTTSPrefs()
+    if(prefs.voiceIdx < ttsVoices.length) sel.value = prefs.voiceIdx
+    ttsReady = true
+  }
+  loadVoices()
+  if(speechSynthesis.onvoiceschanged !== undefined)
+    speechSynthesis.onvoiceschanged = loadVoices
+
+  // Restore other prefs
+  const prefs = getTTSPrefs()
+  const autoEl = document.getElementById('tts-auto')
+  const bothEl = document.getElementById('tts-read-both')
+  const rateEl = document.getElementById('tts-rate')
+  if(autoEl) autoEl.checked = prefs.auto
+  if(bothEl) bothEl.checked = prefs.readBoth
+  if(rateEl){ rateEl.value = prefs.rate; updateRateLabel() }
+}
+
+function getTTSPrefs(){
+  try{ return Object.assign({auto:false,readBoth:false,rate:1,voiceIdx:0},
+    JSON.parse(localStorage.getItem('ff_tts')||'{}')) }
+  catch(e){ return {auto:false,readBoth:false,rate:1,voiceIdx:0} }
+}
+
+function saveTTSPrefs(){
+  updateRateLabel()
+  localStorage.setItem('ff_tts', JSON.stringify({
+    auto:     document.getElementById('tts-auto')?.checked||false,
+    readBoth: document.getElementById('tts-read-both')?.checked||false,
+    rate:     parseFloat(document.getElementById('tts-rate')?.value||1),
+    voiceIdx: parseInt(document.getElementById('tts-voice-select')?.value||0)
+  }))
+}
+
+function updateRateLabel(){
+  const r = document.getElementById('tts-rate')
+  const l = document.getElementById('tts-rate-label')
+  if(r&&l) l.textContent = parseFloat(r.value).toFixed(1)+'×'
+}
+
+function ttsSpeak(text){
+  if(!window.speechSynthesis) return
+  speechSynthesis.cancel()
+  const prefs = getTTSPrefs()
+  // If no text passed, read current card face
+  if(!text){
+    const card = studyQueue[studyIndex]
+    if(!card) return
+    text = studyFlipped ? card.back : card.front
+    if(prefs.readBoth && studyFlipped) text = card.front + ' … ' + card.back
+  }
+  const utt = new SpeechSynthesisUtterance(text)
+  utt.rate = prefs.rate
+  if(ttsVoices[prefs.voiceIdx]) utt.voice = ttsVoices[prefs.voiceIdx]
+  const btn = document.getElementById('tts-speak-btn')
+  if(btn){ btn.textContent='🔊 Speaking...'; btn.style.borderColor='var(--brass)'; btn.style.color='var(--brass)' }
+  utt.onend = utt.onerror = ()=>{
+    if(btn){ btn.textContent='🔊 Listen'; btn.style.borderColor=''; btn.style.color='' }
+  }
+  speechSynthesis.speak(utt)
+}
+
+function ttsStop(){
+  if(window.speechSynthesis) speechSynthesis.cancel()
+  const btn = document.getElementById('tts-speak-btn')
+  if(btn){ btn.textContent='🔊 Listen'; btn.style.borderColor=''; btn.style.color='' }
+}
+
+function ttsAutoRead(){
+  const auto = document.getElementById('tts-auto')
+  if(auto?.checked) ttsSpeak()
+}
 
 // ── AI STUDY ──────────────────────────────────────
 let aiSourceText   = ''
